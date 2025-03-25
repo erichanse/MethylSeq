@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --job-name=bwameth_align
+#SBATCH -p free
+#SBATCH --nodes=1
+#SBATCH --ntasks=16
+#SBATCH --mem=64G
+#SBATCH --time=4:00:00
+#SBATCH --error=%x.%A.err
+#SBATCH --output=%x.%A.out
+
+bismark_methylation_extractor --paired-end --gzip --bedGraph --cytosine_report \
+  --multicore 16 --genome_folder /pub/ehanse/Genome \
+  --output Bismark_Output Control1_Aligned.sortedByName.bam
+
