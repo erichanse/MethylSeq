@@ -1,0 +1,32 @@
+#!/bin/bash
+#SBATCH --job-name=bismark_align
+#SBATCH --output=bismark_align.log
+#SBATCH --error=bismark_align.err
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32  # Adjust as needed
+#SBATCH --mem=200GB           # Increase if needed
+#SBATCH --time=24:00:00      # Adjust based on dataset size
+#SBATCH --partition=free  
+#SBATCH --error=%x.%A.err
+
+module load bismark  # Adjust if necessary
+module load samtools  # Ensure Samtools is available for sorting
+
+# Define paths
+GENOME_DIR="/pub/ehanse/Genome" # Indexed Genome directory
+READ1="Sample1_Read1.txt.gz_val_1.fq.gz" # Read 1
+READ2="Sample1_Read2.txt.gz_val_2.fq.gz" # Read 2
+OUTDIR="./bismark_aligned"  # Change to your preferred output directory
+
+mkdir -p $OUTDIR
+
+# Run Bismark alignment
+bismark --genome $GENOME_DIR \
+        -1 $READ1 -2 $READ2 \
+        --output_dir $OUTDIR \cd
+        --parallel 32 \
+        --bowtie2 \
+        --non_directional \
+        --gzip \
+        --bam
+
