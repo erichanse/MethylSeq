@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --job-name=trim_galore
+#SBATCH --partition=free
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=100G
+#SBATCH --time=4:00:00
+#SBATCH --output=slurm-%j.out
+#SBATCH --error=slurm-%j.err
+
+# Run Trim Galore! with 16 CPUs
+trim_galore --paired Control1_Read1.txt.gz Control1_Read2.txt.gz \
+  --cores 16 \
+  --gzip \
+  --fastqc \
+  --path_to_cutadapt $(which cutadapt) \
+  --output_dir /pub/ehanse/Trimmed/
