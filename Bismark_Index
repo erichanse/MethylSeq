@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --job-name=bismark_index
+#SBATCH --output=bismark_index.log
+#SBATCH --error=bismark_index.err
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=32
+#SBATCH --mem=6400MB  # 200MB per core * 32 cores
+#SBATCH --time=2:00:00  # Adjust based on expected runtime
+#SBATCH --partition=free  # Change if needed
+
+module load bismark 
+
+bismark_genome_preparation --parallel 32 --verbose /pub/ehanse/Genome
