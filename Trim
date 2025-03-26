@@ -10,6 +10,9 @@
 # Run Trim Galore! with 16 CPUs
 trim_galore --paired Control1_Read1.txt.gz Control1_Read2.txt.gz \
   --cores 16 \
+  --quality 20 \
+  --stringency 5 \
+  --length 20 \
   --gzip \
   --fastqc \
   --path_to_cutadapt $(which cutadapt) \
