@@ -1,0 +1,110 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(forcats)
+library(stringr)
+```
+
+```{r}
+# Read Bismark coverage file (Chrom, Start, Methylated C count, Unmethylated C count, Percent methylation)
+meth_data <- fread("Pio1_Read1.txt.gz_val_1_bismark_bt2_pe.bismark.cov", header = FALSE)
+```
+
+```{r}
+head(meth_data)
+```
+
+```{r}
+# Rename columns
+colnames(meth_data) <- c("chr", "pos", "strand", "percent_meth", "methylated", "unmethylated" )
+
+```
+
+```{r}
+meth_data <- meth_data %>%
+  mutate(total_coverage = methylated + unmethylated)
+
+```
+
+```{r}
+#Filter out low quality stuff
+
+filtered_meth_data <- meth_data %>%
+filter(total_coverage >= 3) 
+#select(chr, region, region_start, region_end, region_length, mean_methylation)  # Keep mean_methylation
+head(filtered_meth_data)
+```
+
+
+```{r} 
+# Arrange by chromosome and position
+filtered_meth_data <- filtered_meth_data %>% arrange(chr, pos, strand)
+head(filtered_meth_data)
+```
+
+
+```{r} 
+# Identify stretches where CpGs are within 20 bp of each other
+filtered_meth_data <- filtered_meth_data %>%
+  mutate(region = cumsum(c(1, diff(pos) > 20)))  # New region starts if >20bp apart
+head(filtered_meth_data)
+```
+
+
+```{r} 
+# Count CpGs in each region
+region_counts <- filtered_meth_data %>%
+  group_by(chr, region) %>%
+  summarise(region_start = min(pos),
+            region_end = max(pos),
+            region_length = region_end - region_start,
+            num_CpGs = n(),
+            mean_methylation = mean(percent_meth),
+            .groups = "drop")
+```
+
+```{r}
+head(region_counts)
+```
+
+```{r}
+chr_region_counts <- region_counts %>%
+  filter(grepl("^chr", chr)) %>%
+  mutate(chr_numeric = as.numeric(str_replace(chr, "chr", ""))) %>%  # Extract numeric part
+  arrange(chr_numeric) %>%  # Sort numerically
+  mutate(chr = factor(chr, levels = unique(chr)))  # Convert back
+```
+
+```{r}
+ggplot(chr_region_counts, aes(x = chr, y = num_CpGs)) +
+  geom_bar(stat = "identity", fill = "blue", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "CpG Density Across Chromosomes Control",
+       x = "Chromosome",
+       y = "Number of CpGs")
+```
+
+```{r}
+average_methylation <- filtered_counts %>%
+  group_by(chr) %>%
+  summarise(avg_methylation = mean(mean_methylation, na.rm = TRUE)) 
+
+```
+
+```{r}
+ggplot(average_methylation, aes(x = chr, y = avg_methylation, fill = chr)) +
+  geom_bar(stat = "identity", show.legend = FALSE) +  # Bar plot for average methylation
+  labs(title = "Average Percent Methylation Per Chromosome",
+       x = "Chromosome",
+       y = "Average Percent Methylation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for clarity
+```
+
