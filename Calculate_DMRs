@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+# Load necessary library
+library(methylKit)
+library(ggplot2)
+library(dplyr)
+
+```
+
+```{r}
+
+file.list <- list(
+  "/Volumes/Genomic/MethylSeq/BME/Control1.cov",
+  "/Volumes/Genomic/MethylSeq/BME/Control2.cov",
+  "/Volumes/Genomic/MethylSeq/BME/Control3.cov",
+  "/Volumes/Genomic/MethylSeq/BME/Pio1.cov",
+  "/Volumes/Genomic/MethylSeq/BME/Pio2.cov",
+  "/Volumes/Genomic/MethylSeq/BME/Pio3.cov"
+)
+
+```
+
+```{r}
+# Assign sample groups: 0 = Control, 1 = Treated (Pio)
+sampleIDs <- c("Control1", "Control2", "Control3", "Pio1", "Pio2", "Pio3")
+```
+
+```{r}
+getTreatment <- (c(0, 0, 0, 1, 1, 1))
+```
+
+```{r}
+myobj=methRead(file.list,
+           sample.id=list("Control1", "Control2", "Control3", "Pio1", "Pio2", "Pio3"),
+           assembly="GRCm39",
+           treatment=c(0, 0, 0, 1, 1, 1),
+           context="CpG",
+           pipeline= "bismarkCoverage",
+           mincov = 10
+           )
+```
+
+```{r}
+meth=unite(myobj, destrand=FALSE)
+```
+
+```{r}
+colnames(meth)
+```
+```{r}
+dmr_tiles <- tileMethylCounts(meth, win.size = 1000, step.size = 500) # 1kb windows
+dmr_results <- calculateDiffMeth(dmr_tiles)
+```
+
+```{r}
+# Extract significant DMRs (adjusted p-value < 0.05)
+significant_dmrs <- getMethylDiff(dmr_results, qvalue = 0.05, difference = 1.5)
+```
+
+```{r}
+# Save results
+write.table(significant_dmrs, file = "significant_DMRs_1.5fold.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+```
+
+```{r}
+significant_dmrs_df <- getData(significant_dmrs)
+```
+
+```{r}
+significant_dmrs_clean <- significant_dmrs_df %>%
+  filter(chr %in% paste0("chr", c(1:22, "X", "Y")))
+
+```
+
+```{r}
+significant_dmrs_clean <- significant_dmrs_clean %>%
+  mutate(chr = factor(chr, levels = paste0("chr", c(1:22, "X", "Y")))) %>%
+  arrange(chr, start)
+```
+
+```{r}
+# Plot DMRs
+library(ggplot2)
+ggplot(significant_dmrs_clean, aes(x = chr, y = meth.diff, color = as.factor(sign(significant_dmrs_clean$meth.diff)))) +
+  geom_point(alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Differentially Methylated Regions (DMRs)", x = "Chromosome", y = "Methylation Difference (%)") +
+  scale_color_manual(values = c("blue", "red"), labels = c("Hypo", "Hyper")) +
+  theme(
+  axis.text.x = element_text(size = 6),  # Make x-axis text smaller
+    legend.title = element_blank(),  # Remove legend title
+    legend.text = element_text(size = 10)
+  )
+
+
+```
+```{r}
+clusterSamples(meth, dist="correlation", method="ward", plot=TRUE)
+```
+
+```{r}
+PCASamples(meth)
+```
+
