@@ -1,0 +1,82 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+```
+
+
+```{r}
+# Read Bismark coverage file (Chrom, Start, Methylated C count, Unmethylated C count, Percent methylation)
+meth_data <- fread("Control1_Read1.txt.gz_val_1_bismark_bt2_pe.bismark.cov", header = FALSE)
+```
+
+
+```{r}
+# Rename columns
+colnames(meth_data) <- c("chr", "pos", "strand", "percent_meth", "methylated", "unmethylated" )
+```
+
+
+```{r}
+# View first few rows
+head(meth_data)
+```
+
+
+```{r} 
+#Plot Methylation Data
+ggplot(meth_data, aes(x = percent_meth)) +
+  geom_histogram(binwidth = 5, fill = "steelblue", color = "black") +
+  theme_minimal() +
+  labs(title = "Methylation Percentage Distribution",
+       x = "Methylation Percentage",
+       y = "Frequency")
+
+```
+```{r}
+# Add total coverage column
+meth_data <- meth_data %>%
+  mutate(total_coverage = methylated + unmethylated)
+
+# Keep only positions with at least 20 reads
+filtered_data <- meth_data %>%
+  filter(total_coverage >= 50)
+
+# Check filtered results
+head(filtered_data)
+
+```
+
+```{r}
+#Search a region of interest
+region_data <- meth_data %>%
+  filter(chr == "chr4" & pos >= 89192710 & pos <= 89212856)
+
+ggplot(region_data, aes(x = pos, y = percent_meth)) +
+  geom_point(color = "darkred") +
+  geom_smooth(method = "loess", color = "black") +
+  theme_minimal() +
+  labs(title = "Methylation in Cdkn2a genomic regions: Pio1",
+       x = "Genomic Position",
+       y = "Methylation %")
+
+```
+
+```{r}
+#Methylation across Chromosomes
+ggplot(meth_data, aes(x = chr, y = percent_meth)) +
+  geom_boxplot(fill = "lightblue") +
+  theme_minimal() +
+  labs(title = "Methylation Levels Across Chromosomes",
+       x = "Chromosome",
+       y = "Methylation %")
+
+```
+
+
