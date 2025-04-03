@@ -1,0 +1,47 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("ChIPseeker") ##Repeat for any other packages required
+```
+
+```{r}
+library(ChIPseeker)
+library(methylKit)
+library(GenomicRanges)
+library(AnnotationDbi)
+library(org.Mm.eg.db)  # For mouse gene annotations
+library(TxDb.Mmusculus.UCSC.mm39.knownGene)  # Change based on genome version
+```
+
+```{r}
+dmr_granges <- GRanges(
+  seqnames = significant_dmrs$chr, 
+  ranges = IRanges(start = significant_dmrs$start, end = significant_dmrs$end),
+  strand = "*",
+  meth.diff = significant_dmrs$meth.diff
+)
+```
+
+```{r}
+# Annotate the DMRs
+txdb <- TxDb.Mmusculus.UCSC.mm39.knownGene  # For mouse (adjust for human)
+peakAnno <- annotatePeak(dmr_granges, TxDb = txdb, tssRegion = c(-2000, 2000), 
+                         annoDb = "org.Mm.eg.db")
+```
+
+```{r}
+# View annotation results
+head(as.data.frame(peakAnno))
+
+```
+
+```{r}
+annotated_DMRs <- as.data.frame(peakAnno)
+write.csv(annotated_DMRs, file = "annotated_DMRs_1.5fold.csv", row.names = FALSE)
+```
+
